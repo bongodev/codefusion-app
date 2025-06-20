@@ -200,7 +200,18 @@ export default function AppLayout() {
         </Drawer>
       </Box>
 
-      <Outlet />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          bgcolor: "background.default",
+          minHeight: "100vh",
+        }}
+      >
+        <Toolbar /> {/* Spacer for fixed app bar */}
+        <Outlet />
+      </Box>
     </Box>
   );
 }
