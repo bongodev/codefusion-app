@@ -6,6 +6,7 @@ import { theme } from "./ui/theme";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import AppLayout from "./components/layout/AppLayout";
+import CreateNote from "./pages/CreateNote";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="/notes/new" element={<CreateNote />} />
           <Route
             path="bookmarks"
             element={
