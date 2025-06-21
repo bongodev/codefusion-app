@@ -10,8 +10,8 @@ export type Note = {
     label: "positive" | "negative" | "neutral"; // User-provided label
   };
   userId: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 };
 
 export type CreateNoteRequest = Omit<
@@ -21,4 +21,27 @@ export type CreateNoteRequest = Omit<
 
 export type UpdateNoteRequest = Partial<Note> & {
   _id: string;
+};
+
+export type SearchRequest = {
+  query?: string; // full-text search across content, summary, keyPoints
+  tags?: string[]; // filter by user-provided tags
+  sentiment?: "positive" | "negative" | "neutral"; // sentiment filtering
+  sortBy?: "relevance" | "date" | "title"; // sorting options
+  page?: number; // pagination page number (default: 1)
+  limit?: number; // items per page (default: 20)
+  dateRange?: {
+    from?: Date;
+    to?: Date;
+  };
+};
+
+export type SearchResponse = {
+  notes: Note[];
+  totalCount: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 };
