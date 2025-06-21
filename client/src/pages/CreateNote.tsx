@@ -14,9 +14,12 @@ import { ArrowBackIcon, SaveIcon } from "../ui/icons";
 import MarkdownEditor from "../components/editor/MarkdownEditor";
 import MetadataForm from "../components/notes/Metadatafrom";
 import type { CreateNoteRequest } from "../types";
+import { useCreateNoteMutation } from "../api/hooks";
 
 export default function CreateNote() {
   const navigate = useNavigate();
+
+  const createNoteMutation = useCreateNoteMutation();
 
   const [noteData, setNoteData] = useState<CreateNoteRequest>({
     title: "",
@@ -88,7 +91,21 @@ export default function CreateNote() {
       return;
     }
 
-    // implement later
+    try {
+      await createNoteMutation.mutateAsync(noteData);
+      setSuccessMessage("Note created successfully!");
+
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to create note:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to create note. Please try again."
+      );
+    }
   };
 
   return (

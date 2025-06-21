@@ -5,8 +5,7 @@ import cors from "cors";
 import envConfig from "./config/envConfig";
 import connectDB from "./db";
 import { requestLogger } from "./middlewares";
-
-// import noteRoutes from "./routes/notes";
+import { noteRouter } from "./routes";
 
 const app = express();
 
@@ -33,7 +32,7 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-// app.use("/api/notes", noteRoutes);
+app.use("/api/notes", noteRouter);
 
 app.listen(envConfig.PORT, () => {
   console.log(`Server is running on PORT ${envConfig.PORT}`);
