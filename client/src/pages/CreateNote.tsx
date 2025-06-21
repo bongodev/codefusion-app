@@ -3,6 +3,7 @@ import {
   Alert,
   Box,
   Button,
+  Grid,
   Paper,
   Snackbar,
   Stack,
@@ -141,33 +142,35 @@ export default function CreateNote() {
         </Button>
       </Stack>
 
-      <Stack direction="row" gap={4}>
-        <Stack spacing={3} flex={1}>
-          {/* Title */}
-          <TextField
-            fullWidth
-            label="Note Title"
-            placeholder="Enter a descriptive title for your note"
-            value={noteData.title}
-            onChange={handleTitleChange}
-            error={!!errors.title}
-            helperText={errors.title}
-            variant="outlined"
-            sx={{
-              "& .MuiInputBase-input": {
-                fontSize: "1.25rem",
-                fontWeight: 500,
-              },
-            }}
-          />
+      <Grid container spacing={3}>
+        {/* Left Column - Editor */}
+        <Grid item xs={12} lg={8}>
+          <Stack spacing={3}>
+            {/* Title */}
+            <TextField
+              fullWidth
+              label="Note Title"
+              placeholder="Enter a descriptive title for your note"
+              value={noteData.title}
+              onChange={handleTitleChange}
+              error={!!errors.title}
+              helperText={errors.title}
+              variant="outlined"
+              sx={{
+                "& .MuiInputBase-input": {
+                  fontSize: "1.25rem",
+                  fontWeight: 500,
+                },
+              }}
+            />
 
-          {/* Content Editor */}
-          <Paper sx={{ overflow: "hidden" }}>
-            <MarkdownEditor
-              value={noteData.content}
-              onChange={handleContentChange}
-              onSave={() => {}}
-              placeholder="Start writing your note here... 
+            {/* Content Editor */}
+            <Paper sx={{ overflow: "hidden" }}>
+              <MarkdownEditor
+                value={noteData.content}
+                onChange={handleContentChange}
+                onSave={() => {}}
+                placeholder="Start writing your note here... 
 
 You can use Markdown syntax:
 - **Bold text**
@@ -177,23 +180,28 @@ You can use Markdown syntax:
 - ![Images](url)
 
 The preview will appear on the right as you type."
-              height="500px"
-              autoSave={true}
-              autoSaveInterval={30000}
-            />
-          </Paper>
-        </Stack>
-        <MetadataForm
-          value={{
-            summary: noteData.summary,
-            keyPoints: noteData.keyPoints,
-            tags: noteData.tags,
-            sentiment: noteData.sentiment,
-          }}
-          onChange={handleMetadataChange}
-          // errors={errors}
-        />
-      </Stack>
+                height="500px"
+                autoSave={true}
+                autoSaveInterval={30000}
+              />
+            </Paper>
+          </Stack>
+        </Grid>
+
+        {/* Right Column - Metadata */}
+        <Grid item xs={12} lg={4}>
+          <MetadataForm
+            value={{
+              summary: noteData.summary,
+              keyPoints: noteData.keyPoints,
+              tags: noteData.tags,
+              sentiment: noteData.sentiment,
+            }}
+            onChange={handleMetadataChange}
+            // errors={errors}
+          />
+        </Grid>
+      </Grid>
 
       {/* Success Snackbar */}
       <Snackbar
