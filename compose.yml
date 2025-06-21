@@ -1,0 +1,11 @@
+services:
+  nm-mongo:
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+    image: mongo
+    container_name: nm-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./.data/mongo/data:/data/db
+      - ./.data/mongo/config:/data/configdb
