@@ -198,7 +198,9 @@ The preview will appear on the right as you type."
               sentiment: noteData.sentiment,
             }}
             onChange={handleMetadataChange}
-            // errors={errors}
+            title={noteData.title}
+            content={noteData.content}
+            errors={errors}
           />
         </Grid>
       </Grid>
