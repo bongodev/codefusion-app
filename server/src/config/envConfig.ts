@@ -15,6 +15,9 @@ const envConfig = {
 
   IS_DEVELOPMENT: process.env.NODE_ENV === "development",
   IS_PRODUCTION: process.env.NODE_ENV === "production",
+
+  AI_SERVICE_URL: process.env.AI_SERVICE_URL || "",
+  AI_API_KEY: process.env.AI_API_KEY || "",
 } as const;
 
 export default envConfig;
