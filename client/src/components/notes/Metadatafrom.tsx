@@ -21,6 +21,7 @@ import {
   Paper,
   Divider,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -28,18 +29,30 @@ import {
   SentimentVeryDissatisfied,
   SentimentNeutral,
   SentimentVerySatisfied,
+  AutoFixHigh as GenerateIcon,
 } from "@mui/icons-material";
-import type { CreateNoteRequest, SentimentLabel } from "../../types";
 import { sentimentColors, tagColors } from "../../ui/theme";
-// import notesService from "../../services/notesService";
+
+import type { CreateNoteRequest, SentimentLabel } from "../../types";
+import { useAnalyzeNoteMutation } from "../../api/hooks";
 
 type MetadataFormProps = {
   value: Partial<CreateNoteRequest>;
   onChange: (metadata: Partial<CreateNoteRequest>) => void;
   errors?: Record<string, string>;
+  title?: string;
+  content?: string;
 };
 
-const MetadataForm = ({ value, onChange, errors = {} }: MetadataFormProps) => {
+const MetadataForm = ({
+  value,
+  onChange,
+  errors = {},
+  title,
+  content,
+}: MetadataFormProps) => {
+  const analyzeNoteMutation = useAnalyzeNoteMutation();
+
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [newKeyPoint, setNewKeyPoint] = useState("");
   const [tagInput, setTagInput] = useState("");
@@ -193,292 +206,365 @@ const MetadataForm = ({ value, onChange, errors = {} }: MetadataFormProps) => {
     { value: 1, label: "Very Positive" },
   ];
 
+  const handleGenerateMetadata = async () => {
+    if (!title?.trim() || !content?.trim()) {
+      return;
+    }
+
+    try {
+      const result = await analyzeNoteMutation.mutateAsync({
+        title: title.trim(),
+        note: content.trim(),
+      });
+
+      onChange({
+        ...value,
+        summary: result.summary,
+        tags: [result.tag],
+        sentiment: {
+          score: result.sentiment.score,
+          label: result.sentiment.label.toLowerCase(),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to generate metadata:", error);
+    }
+  };
+
   return (
     <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Note Metadata
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Add metadata to help organize and find your note later
-      </Typography>
-
       <Stack spacing={3}>
-        {/* Summary */}
-        <Box>
-          <TextField
-            fullWidth
-            label="Summary"
-            placeholder="Brief summary of the note content"
-            multiline
-            rows={3}
-            value={value.summary || ""}
-            onChange={handleSummaryChange}
-            error={!!errors.summary}
-            helperText={
-              errors.summary || "Provide a concise summary of your note"
-            }
-          />
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Note Metadata
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Add metadata to help organize and find your note later
+            </Typography>
+          </Box>
+
+          <Box>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={
+                analyzeNoteMutation.isPending ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <GenerateIcon />
+                )
+              }
+              disabled={!title || !content}
+              onClick={handleGenerateMetadata}
+            >
+              {analyzeNoteMutation.isPending ? "Generating..." : "Generate"}
+            </Button>
+          </Box>
         </Box>
 
-        {/* Tags */}
-        <Box>
-          <Autocomplete
-            multiple
-            freeSolo
-            options={availableTags}
-            value={value.tags || []}
-            onChange={handleTagsChange}
-            inputValue={tagInput}
-            onInputChange={(_event, newInputValue) =>
-              setTagInput(newInputValue)
-            }
-            renderTags={(tags, getTagProps) =>
-              tags.map((tag, index) => (
-                <Chip
-                  label={tag}
-                  size="small"
-                  sx={{
-                    bgcolor: getTagColor(tag),
-                    color: "white",
-                    "& .MuiChip-deleteIcon": {
-                      color: "white",
-                    },
-                  }}
-                  {...getTagProps({ index })}
-                />
-              ))
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Tags"
-                placeholder="Add tags (press Enter to add)"
-                error={!!errors.tags}
-                helperText={
-                  errors.tags || "Add relevant tags to categorize your note"
-                }
-              />
-            )}
-          />
-        </Box>
+        {analyzeNoteMutation.isError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Failed to generate metadata. Please try again.
+          </Alert>
+        )}
 
-        {/* Key Points */}
-        <Box>
-          <FormLabel component="legend" sx={{ mb: 2 }}>
-            Key Points
-          </FormLabel>
+        {analyzeNoteMutation.isSuccess && (
+          <Alert severity="success" sx={{ mt: 2 }}>
+            Metadata generated successfully. Please review and adjust as needed.
+          </Alert>
+        )}
 
-          {/* Add new key point */}
-          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+        <Stack spacing={3}>
+          {/* Summary */}
+          <Box>
             <TextField
               fullWidth
-              size="small"
-              placeholder="Add a key point"
-              value={newKeyPoint}
-              onChange={(e) => setNewKeyPoint(e.target.value)}
-              onKeyPress={handleKeyPointKeyPress}
-              error={!!errors.keyPoints}
+              label="Summary"
+              placeholder="Brief summary of the note content"
+              multiline
+              rows={3}
+              value={value.summary || ""}
+              onChange={handleSummaryChange}
+              error={!!errors.summary}
+              helperText={
+                errors.summary || "Provide a concise summary of your note"
+              }
             />
-            <IconButton
-              color="primary"
-              onClick={handleAddKeyPoint}
-              disabled={!newKeyPoint.trim()}
-            >
-              <AddIcon />
-            </IconButton>
           </Box>
 
-          {/* Key points list */}
-          {value.keyPoints && value.keyPoints.length > 0 ? (
-            <List dense sx={{ bgcolor: "background.default", borderRadius: 1 }}>
-              {value.keyPoints.map((point, index) => (
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={point}
-                    primaryTypographyProps={{ variant: "body2" }}
+          {/* Tags */}
+          <Box>
+            <Autocomplete
+              multiple
+              freeSolo
+              options={availableTags}
+              value={value.tags || []}
+              onChange={handleTagsChange}
+              inputValue={tagInput}
+              onInputChange={(_event, newInputValue) =>
+                setTagInput(newInputValue)
+              }
+              renderTags={(tags, getTagProps) =>
+                tags.map((tag, index) => (
+                  <Chip
+                    label={tag}
+                    size="small"
+                    sx={{
+                      bgcolor: getTagColor(tag),
+                      color: "white",
+                      "& .MuiChip-deleteIcon": {
+                        color: "white",
+                      },
+                    }}
+                    {...getTagProps({ index })}
                   />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      size="small"
-                      onClick={() => handleRemoveKeyPoint(index)}
-                    >
-                      <RemoveIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
-              No key points added yet. Key points help highlight the most
-              important aspects of your note.
-            </Alert>
-          )}
-
-          {errors.keyPoints && (
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ mt: 1, display: "block" }}
-            >
-              {errors.keyPoints}
-            </Typography>
-          )}
-        </Box>
-
-        <Divider />
-
-        {/* Sentiment Analysis */}
-        <Box>
-          <FormLabel
-            component="legend"
-            sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
-          >
-            Sentiment Analysis
-            {value.sentiment && getSentimentIcon(value.sentiment.label)}
-          </FormLabel>
-
-          {/* Sentiment Slider */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Overall Sentiment Score
-            </Typography>
-            <Slider
-              value={value.sentiment?.score || 0}
-              onChange={handleSentimentScoreChange}
-              min={-1}
-              max={1}
-              step={0.1}
-              marks={sentimentMarks}
-              valueLabelDisplay="auto"
-              valueLabelFormat={(val) =>
-                `${val > 0 ? "+" : ""}${val.toFixed(1)}`
+                ))
               }
-              sx={{
-                color:
-                  value.sentiment?.label === "positive"
-                    ? sentimentColors.positive.main
-                    : value.sentiment?.label === "negative"
-                    ? sentimentColors.negative.main
-                    : sentimentColors.neutral.main,
-              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Tags"
+                  placeholder="Add tags (press Enter to add)"
+                  error={!!errors.tags}
+                  helperText={
+                    errors.tags || "Add relevant tags to categorize your note"
+                  }
+                />
+              )}
             />
           </Box>
 
-          {/* Sentiment Label */}
-          <FormControl component="fieldset">
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Sentiment Category
-            </Typography>
-            <RadioGroup
-              row
-              value={value.sentiment?.label || "neutral"}
-              onChange={handleSentimentLabelChange}
-            >
-              <FormControlLabel
-                value="positive"
-                control={<Radio size="small" />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <SentimentVerySatisfied
-                      sx={{
-                        color: sentimentColors.positive.main,
-                        fontSize: 20,
-                      }}
-                    />
-                    Positive
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="neutral"
-                control={<Radio size="small" />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <SentimentNeutral
-                      sx={{ color: sentimentColors.neutral.main, fontSize: 20 }}
-                    />
-                    Neutral
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="negative"
-                control={<Radio size="small" />}
-                label={
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <SentimentVeryDissatisfied
-                      sx={{
-                        color: sentimentColors.negative.main,
-                        fontSize: 20,
-                      }}
-                    />
-                    Negative
-                  </Box>
-                }
-              />
-            </RadioGroup>
-          </FormControl>
+          {/* Key Points */}
+          <Box>
+            <FormLabel component="legend" sx={{ mb: 2 }}>
+              Key Points
+            </FormLabel>
 
-          {errors.sentiment && (
-            <Typography
-              variant="caption"
-              color="error"
-              sx={{ mt: 1, display: "block" }}
-            >
-              {errors.sentiment}
-            </Typography>
-          )}
-        </Box>
+            {/* Add new key point */}
+            <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Add a key point"
+                value={newKeyPoint}
+                onChange={(e) => setNewKeyPoint(e.target.value)}
+                onKeyPress={handleKeyPointKeyPress}
+                error={!!errors.keyPoints}
+              />
+              <IconButton
+                color="primary"
+                onClick={handleAddKeyPoint}
+                disabled={!newKeyPoint.trim()}
+              >
+                <AddIcon />
+              </IconButton>
+            </Box>
 
-        {/* Metadata Templates */}
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            Quick Templates
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  tags: [...(value.tags || []), "meeting", "important"],
-                  sentiment: { score: 0.3, label: "positive" },
-                })
-              }
+            {/* Key points list */}
+            {value.keyPoints && value.keyPoints.length > 0 ? (
+              <List
+                dense
+                sx={{ bgcolor: "background.default", borderRadius: 1 }}
+              >
+                {value.keyPoints.map((point, index) => (
+                  <ListItem key={index}>
+                    <ListItemText
+                      primary={point}
+                      primaryTypographyProps={{ variant: "body2" }}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() => handleRemoveKeyPoint(index)}
+                      >
+                        <RemoveIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            ) : (
+              <Alert severity="info" sx={{ fontSize: "0.875rem" }}>
+                No key points added yet. Key points help highlight the most
+                important aspects of your note.
+              </Alert>
+            )}
+
+            {errors.keyPoints && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 1, display: "block" }}
+              >
+                {errors.keyPoints}
+              </Typography>
+            )}
+          </Box>
+
+          <Divider />
+
+          {/* Sentiment Analysis */}
+          <Box>
+            <FormLabel
+              component="legend"
+              sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1 }}
             >
-              Meeting Notes
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  tags: [...(value.tags || []), "research", "learning"],
-                  sentiment: { score: 0.5, label: "positive" },
-                })
-              }
-            >
-              Research
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  tags: [...(value.tags || []), "bug", "investigation"],
-                  sentiment: { score: -0.2, label: "negative" },
-                })
-              }
-            >
-              Bug Report
-            </Button>
-          </Stack>
-        </Box>
+              Sentiment Analysis
+              {value.sentiment && getSentimentIcon(value.sentiment.label)}
+            </FormLabel>
+
+            {/* Sentiment Slider */}
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Overall Sentiment Score
+              </Typography>
+              <Slider
+                value={value.sentiment?.score || 0}
+                onChange={handleSentimentScoreChange}
+                min={-1}
+                max={1}
+                step={0.1}
+                marks={sentimentMarks}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(val) =>
+                  `${val > 0 ? "+" : ""}${val.toFixed(1)}`
+                }
+                sx={{
+                  color:
+                    value.sentiment?.label === "positive"
+                      ? sentimentColors.positive.main
+                      : value.sentiment?.label === "negative"
+                      ? sentimentColors.negative.main
+                      : sentimentColors.neutral.main,
+                }}
+              />
+            </Box>
+
+            {/* Sentiment Label */}
+            <FormControl component="fieldset">
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Sentiment Category
+              </Typography>
+              <RadioGroup
+                row
+                value={value.sentiment?.label || "neutral"}
+                onChange={handleSentimentLabelChange}
+              >
+                <FormControlLabel
+                  value="positive"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <SentimentVerySatisfied
+                        sx={{
+                          color: sentimentColors.positive.main,
+                          fontSize: 20,
+                        }}
+                      />
+                      Positive
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="neutral"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <SentimentNeutral
+                        sx={{
+                          color: sentimentColors.neutral.main,
+                          fontSize: 20,
+                        }}
+                      />
+                      Neutral
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="negative"
+                  control={<Radio size="small" />}
+                  label={
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    >
+                      <SentimentVeryDissatisfied
+                        sx={{
+                          color: sentimentColors.negative.main,
+                          fontSize: 20,
+                        }}
+                      />
+                      Negative
+                    </Box>
+                  }
+                />
+              </RadioGroup>
+            </FormControl>
+
+            {errors.sentiment && (
+              <Typography
+                variant="caption"
+                color="error"
+                sx={{ mt: 1, display: "block" }}
+              >
+                {errors.sentiment}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Metadata Templates */}
+          <Box>
+            <Typography variant="subtitle2" gutterBottom>
+              Quick Templates
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    tags: [...(value.tags || []), "meeting", "important"],
+                    sentiment: { score: 0.3, label: "positive" },
+                  })
+                }
+              >
+                Meeting Notes
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    tags: [...(value.tags || []), "research", "learning"],
+                    sentiment: { score: 0.5, label: "positive" },
+                  })
+                }
+              >
+                Research
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    tags: [...(value.tags || []), "bug", "investigation"],
+                    sentiment: { score: -0.2, label: "negative" },
+                  })
+                }
+              >
+                Bug Report
+              </Button>
+            </Stack>
+          </Box>
+        </Stack>
       </Stack>
     </Paper>
   );
