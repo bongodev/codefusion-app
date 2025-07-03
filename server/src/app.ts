@@ -15,7 +15,7 @@ connectDB();
 app.use(helmet());
 app.use(
   cors({
-    origin: envConfig.CORS_ORIGIN,
+    origin: envConfig.CORS_ORIGIN || true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],

@@ -1,4 +1,36 @@
 services:
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8007
+    depends_on:
+      - server
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8007"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8007
+      - MONGODB_URI=mongodb://nm-mongo:27017/note_manager
+      - CORS_ORIGIN=http://localhost:5173
+      - AI_SERVICE_URL=ai-service-url
+      - AI_API_KEY=ai-api-key
+    depends_on:
+      - nm-mongo
+  
   nm-mongo:
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
@@ -9,3 +41,27 @@ services:
     volumes:
       - ./.data/mongo/data:/data/db
       - ./.data/mongo/config:/data/configdb
+
+  
+  client-nginx:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=http://localhost:8007
+    ports:
+      - "80:80"
+    depends_on:
+      - server-prod
+  server-prod:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8007:8007"
+    environment:
+      - PORT=8007
+      - MONGODB_URI=${MONGODB_URI}
+      - AI_SERVICE_URL=ai-service-url
+      - AI_API_KEY=ai-api-key
+ 
