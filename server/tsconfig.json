@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "commonjs",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
@@ -15,7 +14,7 @@
     "sourceMap": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true
   },
   "include": [

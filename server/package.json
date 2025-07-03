@@ -1,7 +1,6 @@
 {
   "name": "note-manager-server",
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
     "dev": "nodemon --exec tsx src/app.ts",
     "build": "tsc",

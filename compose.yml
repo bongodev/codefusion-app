@@ -41,3 +41,27 @@ services:
     volumes:
       - ./.data/mongo/data:/data/db
       - ./.data/mongo/config:/data/configdb
+
+  
+  client-nginx:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_URL=http://localhost:8007
+    ports:
+      - "80:80"
+    depends_on:
+      - server-prod
+  server-prod:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8007:8007"
+    environment:
+      - PORT=8007
+      - MONGODB_URI=${MONGODB_URI}
+      - AI_SERVICE_URL=ai-service-url
+      - AI_API_KEY=ai-api-key
+ 
